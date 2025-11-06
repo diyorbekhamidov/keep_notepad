@@ -1,0 +1,53 @@
+# IDE files
+.idea/
+*.iml
+local.properties
+.DS_Store
+
+# Gradle
+.gradle/
+**/build/
+!src/**/build/
+.kotlin/
+
+# Temporary files
+*~
+*.swp
+
+# Keystore files
+*.keystore
+*.jks
+
+# Apple/Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+xcuserdata/
+*.a
+*.h
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.framework
+Podfile.lock
+Pods/
+compose-ios-preview-build/
+derivedData/
+*.xcresult
+
+# Android
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Other
+.repo/
+node_modules/
+
+# fastlane
+fastlane/test_output/
+fastlane/report.xml
