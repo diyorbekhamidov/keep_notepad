@@ -15,7 +15,7 @@ interface NotepadDao {
     @Insert
     suspend fun insertNote(notepadEntity: NotepadEntity)
 
-    @Query("SELECT * FROM notepad_table")
+    @Query("SELECT * FROM notepad_table ORDER BY date DESC")
     fun getAllNotes(): Flow<List<NotepadEntity>>
 
     @Update

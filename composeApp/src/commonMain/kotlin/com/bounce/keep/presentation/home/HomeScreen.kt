@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,7 +82,10 @@ fun HomeScreen(
                                 ),
                                 modifier = Modifier.fillMaxWidth(0.9f)
                             )
-                            IconButton(onClick = { showSearchBar = false }) {
+                            IconButton(onClick = {
+                                showSearchBar = false
+                                searchQuery = ""
+                            }) {
                                 Icon(
                                     painter = painterResource(Res.drawable.close),
                                     contentDescription = null
@@ -108,8 +112,18 @@ fun HomeScreen(
     }
 
     when (val notepadData = notepadUiState.value) {
-        UiState.Empty -> {}
-        is UiState.Error -> {}
+        UiState.Empty -> {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Text(text = "No data found")
+            }
+        }
+
+        is UiState.Error -> {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Text(text = notepadData.message)
+            }
+        }
+
         UiState.Loading -> {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 CircularProgressIndicator()
@@ -119,14 +133,29 @@ fun HomeScreen(
         is UiState.Success<List<NotepadEntity>> -> {
             Column(modifier = modifier.fillMaxSize()) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(notepadData.data.size) {
-                        NoteItem(
-                            notepadEntity = notepadData.data[it],
-                            onClick = {
-                                navController?.navigate(
-                                    Detail(notepadData.data[it].id)
-                                )
-                            })
+                    val groupedList = notepadData.data.groupBy { it.date }
+
+                    groupedList.forEach { (date, list) ->
+
+                        item {
+                            Text(
+                                text = date,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Center,
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        items(list.size) {
+                            NoteItem(
+                                notepadEntity = notepadData.data[it],
+                                onClick = {
+                                    navController?.navigate(
+                                        Detail(notepadData.data[it].id)
+                                    )
+                                })
+                        }
                     }
                 }
             }
