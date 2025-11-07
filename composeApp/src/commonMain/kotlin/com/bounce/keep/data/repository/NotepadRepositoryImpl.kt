@@ -25,4 +25,8 @@ class NotepadRepositoryImpl(private val notepadDao: NotepadDao) : NotepadReposit
     override suspend fun getNoteById(id: Int): NotepadEntity? {
         return notepadDao.getNoteById(id)
     }
+
+    override suspend fun getNoteByStr(str: String): Flow<List<NotepadEntity>> {
+        return notepadDao.getNoteByStr(str)
+    }
 }

@@ -27,4 +27,7 @@ interface NotepadDao {
     @Query("SELECT * FROM notepad_table WHERE id = :id")
     suspend fun getNoteById(id: Int): NotepadEntity?
 
+    @Query("SELECT * FROM notepad_table WHERE title LIKE '%' || :str || '%' OR notes LIKE '%' || :str || '%'")
+    fun getNoteByStr(str: String): Flow<List<NotepadEntity>>
+
 }

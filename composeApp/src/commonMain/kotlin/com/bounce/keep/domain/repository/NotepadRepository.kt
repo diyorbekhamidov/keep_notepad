@@ -16,4 +16,6 @@ interface NotepadRepository {
 
     suspend fun getNoteById(id: Int): NotepadEntity?
 
+    suspend fun getNoteByStr(str: String): Flow<List<NotepadEntity>>
+
 }

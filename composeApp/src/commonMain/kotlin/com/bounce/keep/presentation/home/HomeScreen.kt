@@ -2,10 +2,13 @@ package com.bounce.keep.presentation.home
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -14,8 +17,15 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +42,7 @@ import com.bounce.keep.presentation.routes.Detail
 import com.bounce.keep.presentation.routes.Editor
 import com.bounce.keep.presentation.utils.UiState
 import keepnotes.composeapp.generated.resources.Res
+import keepnotes.composeapp.generated.resources.close
 import keepnotes.composeapp.generated.resources.search
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -45,17 +56,45 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val notepadUiState = viewModel.uiState.collectAsStateWithLifecycle()
+    var showSearchBar by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
 
     LaunchedEffect(true) {
         topAppBarState(
             TopAppBarState(
                 title = "Keep Notepad",
                 actions = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            painter = painterResource(Res.drawable.search),
-                            contentDescription = null
-                        )
+                    if (showSearchBar) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(5.dp)) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = {
+                                    searchQuery = it
+                                    viewModel.getNoteByStr(searchQuery)
+                                },
+                                shape = CardDefaults.elevatedShape,
+                                colors = TextFieldDefaults.colors(
+                                    disabledIndicatorColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            )
+                            IconButton(onClick = { showSearchBar = false }) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.close),
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = { showSearchBar = true }) {
+                            Icon(
+                                painter = painterResource(Res.drawable.search),
+                                contentDescription = null
+                            )
+                        }
                     }
                 },
                 floatingActionButton = {
