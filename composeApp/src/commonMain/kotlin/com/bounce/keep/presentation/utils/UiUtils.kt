@@ -27,21 +27,21 @@ fun getCurrentDate(): String {
 
 fun getRandomColor(): Long {
     val colors = listOf(
-        0xFFFBE4FF,
-        0xFFD4E7FE,
-        0xFFFFD6A5,
-        0xFFE7CBA9,
-        0xFFB9B4C7,
-        0xFF99DBF5,
-        0xFFA7D397,
-        0xFFE7D4B5,
-        0xFFFFD966,
-        0xFFE2BBE9,
-        0xFFB8E8FC,
-        0xFFBCE29E,
-        0xFFFFF6BD,
-        0xFFF3C5C5,
-        0xFFC1E1C1
+        0xFFFFF0F8,
+        0xFFEDF4FF,
+        0xFFFFEFD0,
+        0xFFF4E6D4,
+        0xFFEAE8F0,
+        0xFFDEF3FF,
+        0xFFE6F4E2,
+        0xFFF6EFD9,
+        0xFFFFF4C8,
+        0xFFF6E8FA,
+        0xFFE4F5FF,
+        0xFFECF7E0,
+        0xFFFFFAE5,
+        0xFFFCEDED,
+        0xFFE6F4E6
     )
 
     return colors[Random.nextInt(colors.size)]
