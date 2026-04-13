@@ -1,16 +1,28 @@
 package com.bounce.keep.presentation.home
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,9 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +54,6 @@ import keepnotes.composeapp.generated.resources.Res
 import keepnotes.composeapp.generated.resources.close
 import keepnotes.composeapp.generated.resources.search
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -54,153 +63,184 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel<HomeViewModel>(),
     modifier: Modifier = Modifier
 ) {
-    val notepadUiState = viewModel.uiState.collectAsStateWithLifecycle()
-    var showSearchBar by rememberSaveable { mutableStateOf(false) }
-    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
 
-
-    LaunchedEffect(true) {
+    LaunchedEffect(isSearchActive, searchQuery) {
         topAppBarState(
             TopAppBarState(
-                title = "Keep Notepad",
+                title = if (isSearchActive) "" else "Keep Notepad",
                 actions = {
-                    if (showSearchBar) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(5.dp)) {
-                            TextField(
-                                value = searchQuery,
-                                onValueChange = {
-                                    searchQuery = it
-                                    viewModel.getNoteByStr(searchQuery)
-                                },
-                                shape = CardDefaults.elevatedShape,
-                                colors = TextFieldDefaults.colors(
-                                    disabledIndicatorColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent
-                                ),
-                                modifier = Modifier.fillMaxWidth(0.9f)
-                            )
-                            IconButton(onClick = {
-                                showSearchBar = false
-                                searchQuery = ""
-                            }) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.close),
-                                    contentDescription = null
-                                )
+                    if (isSearchActive) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.onSearchQueryChange(it) },
+                            placeholder = { Text("Search notes...", color = Color.White.copy(alpha = 0.7f)) },
+                            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                cursorColor = Color.White,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    isSearchActive = false
+                                    viewModel.onSearchQueryChange("")
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close Search",
+                                        tint = Color.White
+                                    )
+                                }
                             }
-                        }
+                        )
                     } else {
-                        IconButton(onClick = { showSearchBar = true }) {
+                        IconButton(onClick = { isSearchActive = true }) {
                             Icon(
-                                painter = painterResource(Res.drawable.search),
-                                contentDescription = null
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = Color.White
                             )
                         }
                     }
                 },
                 floatingActionButton = {
-                    FloatingActionButton(onClick = {
-                        navController?.navigate(Editor(0))
-                    }) {
-                        Text(text = "+", fontSize = 25.sp)
+                    FloatingActionButton(
+                        onClick = { navController?.navigate(Editor(0)) },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Note")
                     }
                 }
-            ))
+            )
+        )
     }
 
-    when (val notepadData = notepadUiState.value) {
-        UiState.Empty -> {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Text(text = "No data found")
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        when (val state = uiState) {
+            UiState.Empty -> {
+                EmptyState(isSearchActive)
             }
-        }
 
-        is UiState.Error -> {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Text(text = notepadData.message)
+            is UiState.Error -> {
+                ErrorState(state.message)
             }
-        }
 
-        UiState.Loading -> {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                CircularProgressIndicator()
+            UiState.Loading -> {
+                LoadingState()
             }
-        }
 
-        is UiState.Success<List<NotepadEntity>> -> {
-            Column(modifier = modifier.fillMaxSize()) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    val groupedList = notepadData.data.groupBy { it.date }
-
-                    groupedList.forEach { (date, list) ->
-
-                        item {
-                            Text(
-                                text = date,
-                                fontSize = 18.sp,
-                                textAlign = TextAlign.Center,
-                                fontStyle = FontStyle.Italic,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        items(list.size) {
-                            NoteItem(
-                                notepadEntity = notepadData.data[it],
-                                onClick = {
-                                    navController?.navigate(
-                                        Detail(notepadData.data[it].id)
-                                    )
-                                })
-                        }
+            is UiState.Success -> {
+                NotesGrid(
+                    notes = state.data,
+                    onNoteClick = { note ->
+                        navController?.navigate(Detail(note.id))
                     }
-                }
+                )
             }
         }
     }
-
-
 }
 
 @Composable
-@Preview(showBackground = true)
-fun NoteItem(
-    notepadEntity: NotepadEntity = NotepadEntity(
-        title = "Plan for next month",
-        notes = "Namangan 460 000 000 sum",
-        date = "09 Nov 2025",
-        color = 0xFFFBE4FF
-    ),
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth().requiredHeight(130.dp)
+fun NotesGrid(
+    notes: List<NotepadEntity>,
+    onNoteClick: (NotepadEntity) -> Unit
 ) {
-    ElevatedCard(
-        onClick = { onClick() }, colors = CardDefaults.elevatedCardColors(
-            containerColor = Color(notepadEntity.color)
-        ), modifier = modifier.padding(5.dp)
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalItemSpacing = 8.dp
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(10.dp)) {
+        items(notes, key = { it.id }) { note ->
+            NoteItem(note = note, onClick = { onNoteClick(note) })
+        }
+    }
+}
+
+@Composable
+fun NoteItem(
+    note: NotepadEntity,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(note.color)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            if (note.title.isNotEmpty()) {
+                Text(
+                    text = note.title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black.copy(alpha = 0.8f)
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Text(
-                text = notepadEntity.title,
-                fontSize = 22.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onPrimary
+                text = note.notes,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = Color.Black.copy(alpha = 0.7f)
+                ),
+                maxLines = 10,
+                overflow = TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = notepadEntity.notes,
-                fontSize = 18.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-            Text(
-                text = notepadEntity.date,
-                fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontStyle = FontStyle.Italic
+                text = note.date,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = Color.Black.copy(alpha = 0.5f)
+                )
             )
         }
+    }
+}
+
+@Composable
+fun EmptyState(isSearch: Boolean) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = if (isSearch) "No notes match your search" else "No notes yet",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun LoadingState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@Composable
+fun ErrorState(message: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = message, color = MaterialTheme.colorScheme.error)
     }
 }
