@@ -2,10 +2,11 @@ package com.bounce.keep
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -25,7 +25,6 @@ import com.bounce.keep.presentation.home.HomeScreen
 import com.bounce.keep.presentation.routes.Detail
 import com.bounce.keep.presentation.routes.Editor
 import com.bounce.keep.presentation.routes.Home
-import com.bounce.keep.presentation.ui.theme.Blue80
 import com.bounce.keep.presentation.ui.theme.KeepNotesTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -36,23 +35,21 @@ fun App() {
 
     val navController = rememberNavController()
     var topAppBarState by remember { mutableStateOf(TopAppBarState()) }
-
-
     KeepNotesTheme {
 
         Scaffold(topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(text = topAppBarState.title)
                 }, actions = {
                     topAppBarState.actions?.invoke(this)
                 }, navigationIcon = {
                     topAppBarState.navigationBack?.invoke()
-                }, colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Blue80,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                }, colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         }, floatingActionButton = {
