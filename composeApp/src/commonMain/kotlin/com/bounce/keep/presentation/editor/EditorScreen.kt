@@ -1,5 +1,6 @@
 package com.bounce.keep.presentation.editor
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,23 +11,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,13 +30,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.bounce.keep.data.entity.NotepadEntity
 import com.bounce.keep.presentation.TopAppBarState
+import com.bounce.keep.presentation.utils.MyGlobalDialog
 import com.bounce.keep.presentation.utils.UiState
-import kotlinx.coroutines.launch
+import keepnotes.composeapp.generated.resources.Res
+import keepnotes.composeapp.generated.resources.nav_back
+import keepnotes.composeapp.generated.resources.save
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -52,27 +51,75 @@ fun EditorScreen(
     modifier: Modifier = Modifier
 ) {
     val noteState by viewModel.noteState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(id) {
+    DisposableEffect(id) {
         viewModel.getNoteById(id)
+        onDispose { }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         when (val state = noteState) {
             UiState.Loading -> {
+                DisposableEffect(Unit) {
+                    topAppBarState(
+                        TopAppBarState(
+                            title = "Loading...",
+                            navigationBack = {
+                                IconButton(onClick = { navController.navigateUp() }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.nav_back),
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            }
+                        )
+                    )
+                    onDispose { }
+                }
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
 
             UiState.Empty -> {
+                DisposableEffect(Unit) {
+                    topAppBarState(
+                        TopAppBarState(
+                            title = "Note not found",
+                            navigationBack = {
+                                IconButton(onClick = { navController.navigateUp() }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.nav_back),
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            }
+                        )
+                    )
+                    onDispose { }
+                }
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Note not found")
                 }
             }
 
             is UiState.Error -> {
+                DisposableEffect(Unit) {
+                    topAppBarState(
+                        TopAppBarState(
+                            title = "Error",
+                            navigationBack = {
+                                IconButton(onClick = { navController.navigateUp() }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.nav_back),
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            }
+                        )
+                    )
+                    onDispose { }
+                }
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(state.message, color = MaterialTheme.colorScheme.error)
                 }
@@ -94,7 +141,7 @@ fun EditorScreen(
 }
 
 @Composable
-fun EditorContent(
+private fun EditorContent(
     note: NotepadEntity,
     topAppBarState: (TopAppBarState) -> Unit,
     navController: NavHostController,
@@ -102,18 +149,18 @@ fun EditorContent(
 ) {
     var title by rememberSaveable { mutableStateOf(note.title) }
     var notes by rememberSaveable { mutableStateOf(note.notes) }
+    var showUnsavedDialog by remember { mutableStateOf(false) }
     val backgroundColor = Color(note.color)
 
-    LaunchedEffect(title, notes, backgroundColor) {
+    DisposableEffect(Unit) {
         topAppBarState(
             TopAppBarState(
-                title = "",
+                title = note.title.ifEmpty { "New Note" },
                 navigationBack = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
+                            painter = painterResource(Res.drawable.nav_back),
+                            contentDescription = "Back"
                         )
                     }
                 },
@@ -126,14 +173,22 @@ fun EditorContent(
                         }
                     }) {
                         Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Save",
-                            tint = Color.White
+                            painter = painterResource(Res.drawable.save),
+                            contentDescription = "Save"
                         )
                     }
                 }
             )
         )
+        onDispose { }
+    }
+
+    BackHandler {
+        if (title.isNotBlank() || notes.isNotBlank()) {
+            showUnsavedDialog = true
+        } else {
+            navController.navigateUp()
+        }
     }
 
     Column(
@@ -195,4 +250,15 @@ fun EditorContent(
             )
         )
     }
+
+    MyGlobalDialog(
+        showDialog = showUnsavedDialog,
+        onConfirm = {
+            showUnsavedDialog = false
+            navController.navigateUp()
+        },
+        onDismiss = { showUnsavedDialog = false },
+        title = "Discard Changes",
+        message = "You have unsaved changes. Are you sure you want to discard them?"
+    )
 }

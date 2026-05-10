@@ -5,21 +5,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,7 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,7 +37,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.bounce.keep.data.entity.NotepadEntity
@@ -51,6 +45,7 @@ import com.bounce.keep.presentation.routes.Detail
 import com.bounce.keep.presentation.routes.Editor
 import com.bounce.keep.presentation.utils.UiState
 import keepnotes.composeapp.generated.resources.Res
+import keepnotes.composeapp.generated.resources.add
 import keepnotes.composeapp.generated.resources.close
 import keepnotes.composeapp.generated.resources.search
 import org.jetbrains.compose.resources.painterResource
@@ -67,78 +62,97 @@ fun HomeScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(isSearchActive, searchQuery) {
-        topAppBarState(
-            TopAppBarState(
-                title = if (isSearchActive) "" else "Keep Notepad",
-                actions = {
-                    if (isSearchActive) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { viewModel.onSearchQueryChange(it) },
-                            placeholder = { Text("Search notes...", color = Color.White.copy(alpha = 0.7f)) },
-                            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                cursorColor = Color.White,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            trailingIcon = {
-                                IconButton(onClick = {
-                                    isSearchActive = false
-                                    viewModel.onSearchQueryChange("")
-                                }) {
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        when (val state = uiState) {
+            UiState.Empty -> {
+                DisposableEffect(isSearchActive) {
+                    topAppBarState(
+                        TopAppBarState(
+                            title = "Keep Notepad",
+                            actions = {
+                                SearchActions(
+                                    isSearchActive = isSearchActive,
+                                    searchQuery = searchQuery,
+                                    onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
+                                    onSearchToggle = { isSearchActive = true },
+                                    onSearchClose = {
+                                        isSearchActive = false
+                                        viewModel.onSearchQueryChange("")
+                                    }
+                                )
+                            },
+                            floatingActionButton = {
+                                FloatingActionButton(
+                                    onClick = { navController?.navigate(Editor(0)) },
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Close Search",
-                                        tint = Color.White
+                                        painter = painterResource(Res.drawable.add),
+                                        contentDescription = "Add Note"
                                     )
                                 }
                             }
                         )
-                    } else {
-                        IconButton(onClick = { isSearchActive = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                },
-                floatingActionButton = {
-                    FloatingActionButton(
-                        onClick = { navController?.navigate(Editor(0)) },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Note")
-                    }
+                    )
+                    onDispose { }
                 }
-            )
-        )
-    }
-
-    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        when (val state = uiState) {
-            UiState.Empty -> {
                 EmptyState(isSearchActive)
             }
 
             is UiState.Error -> {
+                DisposableEffect(Unit) {
+                    topAppBarState(
+                        TopAppBarState(title = "Keep Notepad")
+                    )
+                    onDispose { }
+                }
                 ErrorState(state.message)
             }
 
             UiState.Loading -> {
+                DisposableEffect(Unit) {
+                    topAppBarState(
+                        TopAppBarState(title = "Keep Notepad")
+                    )
+                    onDispose { }
+                }
                 LoadingState()
             }
 
             is UiState.Success -> {
+                DisposableEffect(isSearchActive) {
+                    topAppBarState(
+                        TopAppBarState(
+                            title = if (isSearchActive) "" else "Keep Notepad",
+                            actions = {
+                                SearchActions(
+                                    isSearchActive = isSearchActive,
+                                    searchQuery = searchQuery,
+                                    onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
+                                    onSearchToggle = { isSearchActive = true },
+                                    onSearchClose = {
+                                        isSearchActive = false
+                                        viewModel.onSearchQueryChange("")
+                                    }
+                                )
+                            },
+                            floatingActionButton = {
+                                FloatingActionButton(
+                                    onClick = { navController?.navigate(Editor(0)) },
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.add),
+                                        contentDescription = "Add Note"
+                                    )
+                                }
+                            }
+                        )
+                    )
+                    onDispose { }
+                }
                 NotesGrid(
                     notes = state.data,
                     onNoteClick = { note ->
@@ -146,6 +160,55 @@ fun HomeScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SearchActions(
+    isSearchActive: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onSearchToggle: () -> Unit,
+    onSearchClose: () -> Unit
+) {
+    if (isSearchActive) {
+        val contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        TextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = {
+                Text(
+                    "Search notes...",
+                    color = contentColor.copy(alpha = 0.7f)
+                )
+            },
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                cursorColor = contentColor,
+                focusedTextColor = contentColor,
+                unfocusedTextColor = contentColor,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            trailingIcon = {
+                IconButton(onClick = onSearchClose) {
+                    Icon(
+                        painter = painterResource(Res.drawable.close),
+                        contentDescription = "Close Search"
+                    )
+                }
+            }
+        )
+    } else {
+        IconButton(onClick = onSearchToggle) {
+            Icon(
+                painter = painterResource(Res.drawable.search),
+                contentDescription = "Search"
+            )
         }
     }
 }
